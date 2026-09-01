@@ -7,7 +7,7 @@ import {
   configGetDesc
 } from './config.js';
 import './ui.css';
-import { requireElement } from './player_api/helpers';
+import { requireElement, getPlayer } from './player_api/helpers';
 
 // We handle key events ourselves.
 window.__spatialNavigation__.keyMode = 'NONE';
@@ -16,6 +16,7 @@ const ARROW_KEY_CODE = { 37: 'left', 38: 'up', 39: 'right', 40: 'down' };
 
 const colorCodeMap = new Map([
   [403, 'red'],
+  [166, 'red'],
 
   [404, 'green'],
   [172, 'green'],
@@ -206,6 +207,15 @@ const eventHandler = (evt) => {
       showOptionsPanel(!optionsPanelVisible);
     }
     return false;
+  } else if (getKeyColor(evt.charCode) === 'red') {
+    evt.preventDefault();
+    evt.stopPropagation();
+
+    if (evt.type === 'keydown') {
+      // Toggle captions.
+      toggleCaptions();
+    }
+    return false;
   } else if (getKeyColor(evt.charCode) === 'blue') {
     evt.preventDefault();
     evt.stopPropagation();
@@ -307,6 +317,31 @@ function applyUIFixes() {
   } catch (e) {
     console.error('error setting up <body> class observer:', e);
   }
+}
+
+async function toggleCaptions() {
+  const player = await getPlayer();
+
+  const currentTrack = player.getOption('captions', 'track');
+  const isEnabled = !!currentTrack?.languageCode;
+
+  if (isEnabled) {
+    player.setOption('captions', 'track', {});
+    showNotification('Captions: Disabled', 2000, 'red');
+    return;
+  }
+
+  const tracks =
+    player.getPlayerResponse()?.captions?.playerCaptionsTracklistRenderer
+      ?.captionTracks;
+
+  if (!tracks?.length) {
+    showNotification('Captions: Unavailable', 2000, 'red');
+    return;
+  }
+
+  player.setOption('captions', 'track', tracks[0]);
+  showNotification('Captions: Enabled', 2000, 'red');
 }
 
 let audioOnlyEnabled = false;

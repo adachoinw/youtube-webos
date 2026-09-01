@@ -44,6 +44,20 @@ export interface VideoStats {
   el?: 'leanback' | 'shortspage';
 }
 
+export interface CaptionTrack {
+  languageCode: string;
+  kind?: string;
+  vssId?: string;
+}
+
+interface PlayerResponse {
+  captions?: {
+    playerCaptionsTracklistRenderer?: {
+      captionTracks?: CaptionTrack[];
+    };
+  };
+}
+
 export interface YTPlayer extends HTMLElement {
   addEventListener<K extends keyof YTPlayerEventMap>(
     type: K,
@@ -78,4 +92,14 @@ export interface YTPlayer extends HTMLElement {
   isInline(): boolean;
 
   getVideoStats(): VideoStats;
+
+  getPlayerResponse(): PlayerResponse;
+
+  getOption(module: 'captions', option: 'track'): { languageCode?: string };
+
+  setOption(
+    module: 'captions',
+    option: 'track',
+    value: CaptionTrack | Record<string, never>
+  ): void;
 }
