@@ -1,5 +1,7 @@
 .webOs-watch {
   position: fixed;
+  /* The watch page paints over anything at the default stacking level. */
+  z-index: 9999;
   right: 0;
   top: 0;
   margin: 1rem 2rem;

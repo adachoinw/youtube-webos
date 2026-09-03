@@ -1,17 +1,14 @@
 import { configRead, configAddChangeListener } from './config';
 import './watch.css';
-import { requireElement } from './player_api/helpers';
 
 class Watch {
   #watch;
   #timer;
-  #attrChanges;
-  #PLAYER_SELECTOR = 'ytlr-watch-default';
+  #alignTimer;
 
   constructor() {
     this.createElement();
     this.startClock();
-    this.playerEvents();
   }
 
   createElement() {
@@ -33,42 +30,16 @@ class Watch {
     };
 
     setTime();
-    setTimeout(() => {
+    this.#alignTimer = setTimeout(() => {
       setTime();
       this.#timer = setInterval(setTime, 60000);
     }, nextSeg);
   }
 
-  playerAppear(video) {
-    this.changeVisibility(video);
-    this.playerObserver(video);
-  }
-
-  changeVisibility(video) {
-    const focused = video.getAttribute('hybridnavfocusable') === 'true';
-    this.#watch.style.display = focused ? 'none' : 'block';
-  }
-
-  async playerEvents() {
-    const player = await requireElement(this.#PLAYER_SELECTOR, HTMLElement);
-    this.playerAppear(player);
-  }
-
-  playerObserver(node) {
-    this.#attrChanges = new MutationObserver(() => {
-      this.changeVisibility(node);
-    });
-
-    this.#attrChanges.observe(node, {
-      attributes: true,
-      attributeFilter: ['hybridnavfocusable']
-    });
-  }
-
   destroy() {
+    clearTimeout(this.#alignTimer);
     clearInterval(this.#timer);
     this.#watch?.remove();
-    this.#attrChanges?.disconnect();
   }
 }
 
