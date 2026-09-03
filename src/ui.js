@@ -216,6 +216,15 @@ const eventHandler = (evt) => {
       toggleCaptions();
     }
     return false;
+  } else if (getKeyColor(evt.charCode) === 'yellow') {
+    evt.preventDefault();
+    evt.stopPropagation();
+
+    if (evt.type === 'keydown' && !evt.repeat) {
+      // Open comments panel.
+      openComments();
+    }
+    return false;
   } else if (getKeyColor(evt.charCode) === 'blue') {
     evt.preventDefault();
     evt.stopPropagation();
@@ -337,6 +346,92 @@ async function toggleCaptions() {
   );
 }
 
+let lastCommentsOpenTime = 0;
+const COMMENTS_OPEN_DEBOUNCE_MS = 400;
+
+const COMMENTS_PANEL_ID = 'comment-item-section';
+
+/**
+ * The engagement panel component class only exists inside YouTube's bundle, so
+ * we grab it from the first panel the app opens by itself and reuse it. It's
+ * shared by every engagement panel (comments, description, chapters, ...) and
+ * stays the same across videos.
+ */
+let engagementPanelComponent = null;
+
+/**
+ * Hooks the overlay stage's `open()` so we can both learn the panel component
+ * and call `open()` ourselves later.
+ *
+ * Clicking the real "Comments" button from script does nothing: its handler is
+ * only reachable through a trusted event, which page JS can't produce. Calling
+ * `open()` on the overlay stage is what YouTube itself ends up doing and has no
+ * such restriction.
+ */
+function hookOverlayStage() {
+  const stage = document.querySelector('yt-unified-overlay-stage');
+  const instance = stage?.__instance;
+  if (!instance || instance.__ytafHooked) return instance ?? null;
+
+  instance.__ytafHooked = true;
+
+  const open = instance.open.bind(instance);
+  instance.open = (overlay) => {
+    if (overlay?.component) {
+      engagementPanelComponent = overlay.component;
+    }
+    return open(overlay);
+  };
+
+  return instance;
+}
+
+function getCommentsPanelData() {
+  const watchPage = document.querySelector('ytlr-watch-page');
+  const panels = watchPage?.__instance?.props?.data?.engagementPanels;
+
+  return panels
+    ?.map((panel) => panel.engagementPanelSectionListRenderer)
+    ?.find((panel) => panel?.panelIdentifier === COMMENTS_PANEL_ID);
+}
+
+function openComments() {
+  const now = Date.now();
+  if (now - lastCommentsOpenTime < COMMENTS_OPEN_DEBOUNCE_MS) return;
+  lastCommentsOpenTime = now;
+
+  const stage = hookOverlayStage();
+  const data = getCommentsPanelData();
+
+  if (!stage || !data) {
+    showNotification('Comments unavailable', 2000, 'yellow');
+    return;
+  }
+
+  if (!engagementPanelComponent) {
+    // Nothing has opened a panel yet this session, so we have no component to
+    // render with. Point the user at the built-in button, which also primes us.
+    showNotification(
+      'Open comments once from the player first',
+      4000,
+      'yellow'
+    );
+    return;
+  }
+
+  stage.open({
+    component: engagementPanelComponent,
+    uniqueId: COMMENTS_PANEL_ID,
+    props: { data },
+    shouldInterruptPlayback: false
+  });
+}
+
+async function initCommentsPanel() {
+  await requireElement('yt-unified-overlay-stage', HTMLElement);
+  hookOverlayStage();
+}
+
 async function initCaptionsStyle() {
   const player = await getPlayer();
 
@@ -413,6 +508,7 @@ async function initAudioOnlyToggle() {
 applyUIFixes();
 initHideLogo();
 initCaptionsStyle();
+initCommentsPanel();
 
 setTimeout(() => {
   showNotification(
