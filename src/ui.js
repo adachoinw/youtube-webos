@@ -211,7 +211,7 @@ const eventHandler = (evt) => {
     evt.preventDefault();
     evt.stopPropagation();
 
-    if (evt.type === 'keydown') {
+    if (evt.type === 'keydown' && !evt.repeat) {
       // Toggle captions.
       toggleCaptions();
     }
@@ -319,29 +319,31 @@ function applyUIFixes() {
   }
 }
 
+let lastCaptionsToggleTime = 0;
+const CAPTIONS_TOGGLE_DEBOUNCE_MS = 400;
+
 async function toggleCaptions() {
+  const now = Date.now();
+  if (now - lastCaptionsToggleTime < CAPTIONS_TOGGLE_DEBOUNCE_MS) return;
+  lastCaptionsToggleTime = now;
+
   const player = await getPlayer();
 
-  const currentTrack = player.getOption('captions', 'track');
-  const isEnabled = !!currentTrack?.languageCode;
+  player.toggleSubtitlesOn();
+  showNotification(
+    `Captions: ${player.isSubtitlesOn() ? 'Enabled' : 'Disabled'}`,
+    2000,
+    'red'
+  );
+}
 
-  if (isEnabled) {
-    player.setOption('captions', 'track', {});
-    showNotification('Captions: Disabled', 2000, 'red');
-    return;
-  }
+async function initCaptionsStyle() {
+  const player = await getPlayer();
 
-  const tracks =
-    player.getPlayerResponse()?.captions?.playerCaptionsTracklistRenderer
-      ?.captionTracks;
-
-  if (!tracks?.length) {
-    showNotification('Captions: Unavailable', 2000, 'red');
-    return;
-  }
-
-  player.setOption('captions', 'track', tracks[0]);
-  showNotification('Captions: Enabled', 2000, 'red');
+  player.updateSubtitlesUserSettings({
+    charEdgeStyle: 4, // Drop shadow
+    backgroundOpacity: 0
+  });
 }
 
 let audioOnlyEnabled = false;
@@ -410,6 +412,7 @@ async function initAudioOnlyToggle() {
 
 applyUIFixes();
 initHideLogo();
+initCaptionsStyle();
 
 setTimeout(() => {
   showNotification(

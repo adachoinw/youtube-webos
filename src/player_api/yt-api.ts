@@ -44,18 +44,17 @@ export interface VideoStats {
   el?: 'leanback' | 'shortspage';
 }
 
-export interface CaptionTrack {
-  languageCode: string;
-  kind?: string;
-  vssId?: string;
-}
-
-interface PlayerResponse {
-  captions?: {
-    playerCaptionsTracklistRenderer?: {
-      captionTracks?: CaptionTrack[];
-    };
-  };
+export interface SubtitlesUserSettings {
+  background: string;
+  backgroundOpacity: number;
+  charEdgeStyle: number;
+  color: string;
+  fontFamily: number;
+  fontSizeIncrement: number;
+  fontStyle: number;
+  textOpacity: number;
+  windowColor: string;
+  windowOpacity: number;
 }
 
 export interface YTPlayer extends HTMLElement {
@@ -93,13 +92,9 @@ export interface YTPlayer extends HTMLElement {
 
   getVideoStats(): VideoStats;
 
-  getPlayerResponse(): PlayerResponse;
+  updateSubtitlesUserSettings(settings: Partial<SubtitlesUserSettings>): void;
 
-  getOption(module: 'captions', option: 'track'): { languageCode?: string };
+  toggleSubtitlesOn(): void;
 
-  setOption(
-    module: 'captions',
-    option: 'track',
-    value: CaptionTrack | Record<string, never>
-  ): void;
+  isSubtitlesOn(): boolean;
 }
