@@ -8,6 +8,7 @@
     "build": "webpack --mode=production",
     "build:dev": "webpack --mode=development",
     "package": "ares-package -n dist",
+    "package:named": "ares-package -n dist && node tools/rename-ipk.cjs _captions_red_button",
     "deploy": "node tools/deploy.js",
     "inspect": "ares-inspect youtube.leanback.v4",
     "launch": "ares-launch youtube.leanback.v4",
